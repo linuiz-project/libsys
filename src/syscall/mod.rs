@@ -1,5 +1,3 @@
-mod asserts;
-
 pub mod klog;
 pub mod task;
 
@@ -19,6 +17,11 @@ pub enum Vector {
 }
 
 pub type Result = core::result::Result<Success, Error>;
+
+const_assert!({
+    use core::mem::size_of;
+    size_of::<Result>() <= size_of::<(u64, u64)>()
+});
 
 pub trait ResultConverter {
     type Registers;

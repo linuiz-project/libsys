@@ -16,12 +16,12 @@ pub enum Vector {
     TaskYield = 0x201,
 }
 
+pub type Result = core::result::Result<Success, Error>;
+
 const_assert!({
     use core::mem::size_of;
     size_of::<Result>() <= size_of::<(u64, u64)>()
 });
-
-pub type Result = core::result::Result<Success, Error>;
 
 pub trait ResultConverter {
     type Registers;

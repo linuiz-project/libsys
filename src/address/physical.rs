@@ -9,11 +9,11 @@ impl super::Addressable for Physical {
     const DEBUG_NAME: &'static str = "Address<Physical>";
 
     fn new(init: Self::Init) -> Option<Self::Repr> {
-        crate::constants::checked_phys_canonical(init).then_some(init)
+        crate::constants::is_physical_address_canonical(init).then_some(init)
     }
 
     fn new_truncate(init: Self::Init) -> Self::Repr {
-        init & crate::constants::phys_canonical_mask()
+        init & crate::constants::physical_address_mask()
     }
 
     fn get(repr: Self::Repr) -> Self::Get {

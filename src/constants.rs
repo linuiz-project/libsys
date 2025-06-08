@@ -4,14 +4,17 @@ pub use x86_64::*;
 mod x86_64 {
     use core::num::NonZeroU32;
 
+    /// Bit shift required to offset page indexes.
     pub const fn page_shift() -> NonZeroU32 {
         NonZeroU32::new(12).unwrap()
     }
 
+    /// The size of a page in bytes.
     pub const fn page_size() -> usize {
         1 << page_shift().get()
     }
 
+    /// Bit-mask of non-index page bytes.
     pub const fn page_mask() -> usize {
         page_size().checked_sub(1).unwrap()
     }
@@ -28,15 +31,15 @@ mod x86_64 {
         table_index_size().checked_sub(1).unwrap()
     }
 
-    pub const fn phys_canonical_mask() -> usize {
+    /// Bit-mask of canonical physical bits.
+    pub const fn physical_address_mask() -> usize {
         0x000F_FFFF_FFFF_FFFF
     }
-
-    pub const fn checked_phys_canonical(address: usize) -> bool {
-        (address & !phys_canonical_mask()) == 0
+    /// Checks if the provided `physical_address` is canonical.
+    pub const fn is_physical_address_canonical(physical_address: usize) -> bool {
+        (physical_address & !physical_address_mask()) == 0
     }
 
-    #[inline]
     fn paging_depth() -> u32 {
         const CR4_LA57_BIT: usize = 1 << 12;
 

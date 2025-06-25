@@ -14,6 +14,16 @@ mod x86_64 {
         1 << page_shift().get()
     }
 
+    /// The size of a mega page in bytes.
+    pub const fn mega_page_size() -> usize {
+        512 * page_size()
+    }
+
+    /// The size of a giga page in bytes.
+    pub const fn giga_page_size() -> usize {
+        512 * mega_page_size()
+    }
+
     /// Bit-mask of non-index page bytes.
     pub const fn page_mask() -> usize {
         page_size().checked_sub(1).unwrap()

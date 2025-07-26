@@ -118,7 +118,7 @@ impl core::fmt::Debug for Address<Frame> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Address, Frame, Physical};
+    use crate::address::{Address, Frame, NonCanonicalError, Physical};
 
     #[test]
     fn get() {
@@ -130,7 +130,10 @@ mod tests {
 
     #[test]
     fn new() {
-        assert_eq!(Address::<Frame>::new(0xFFFF_0000_0000_F000), None);
+        assert_eq!(
+            Address::<Frame>::new(0xFFFF_0000_0000_F000),
+            Err(NonCanonicalError)
+        );
     }
 
     #[test]
@@ -153,10 +156,10 @@ mod tests {
     fn from_index() {
         assert_eq!(
             Address::<Frame>::from_index(0xFFF0_0000_0000_F),
-            Err(crate::NonCanonicalError)
+            Err(NonCanonicalError)
         );
         assert_eq!(
-            Address::<Frame>::from_index(0xF).map(Address::get),
+            Address::<Frame>::from_index(0xF).map(|address| address.get()),
             Ok(unsafe { Address::<Physical>::new_unsafe(0xF000) })
         );
     }

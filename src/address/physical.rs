@@ -71,7 +71,7 @@ impl Address<Physical> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Address, Physical};
+    use crate::address::{Address, NonCanonicalError, Physical};
 
     #[test]
     fn get() {
@@ -80,8 +80,14 @@ mod tests {
 
     #[test]
     fn new() {
-        assert_eq!(Address::<Physical>::new(0xFFF0_0000_0000_000F), None);
-        assert_eq!(Address::<Physical>::new(0xF).map(Address::get), Some(0xF));
+        assert_eq!(
+            Address::<Physical>::new(0xFFF0_0000_0000_000F),
+            Err(NonCanonicalError)
+        );
+        assert_eq!(
+            Address::<Physical>::new(0xF).map(|address| address.get()),
+            Ok(0xF)
+        );
     }
 
     #[test]

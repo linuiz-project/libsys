@@ -1,3 +1,4 @@
+use crate::constants::get_paging_depth;
 use core::num::NonZero;
 
 /// Bit shift required to offset page indexes.
@@ -85,33 +86,13 @@ pub const fn is_physical_address_canonical(physical_address: usize) -> bool {
     (physical_address & !physical_address_mask()) == 0
 }
 
-/// The maximum paging depth (either 4 or 5) of the current environment.
-#[must_use]
-pub fn max_paging_depth() -> u32 {
-    const CR4_LA57_BIT: usize = 1 << 12;
-
-    let cr4: usize;
-    unsafe {
-        core::arch::asm!(
-            "mov {}, cr4",
-            out(reg) cr4,
-            options(nomem, pure)
-        );
-    }
-
-    if (cr4 & CR4_LA57_BIT) == 0 { 4 } else { 5 }
-}
-
 /// Bit-shift to reach non-canonical bits of a virtual address.
 #[must_use]
 pub fn virtual_address_noncanonical_shift() -> NonZero<u32> {
-    let table_indexes_shift = table_index_shift()
-        .get()
-        .checked_mul(max_paging_depth())
-        .unwrap();
+    let table_indexes_shift = table_index_shift().checked_mul(get_paging_depth()).unwrap();
     let total_shift = table_indexes_shift.checked_add(page_shift().get()).unwrap();
 
-    NonZero::<u32>::new(total_shift).unwrap()
+    NonZero::<u32>::new(total_shift.get()).unwrap()
 }
 
 /// Checks whether a provided address has only the canonical virtual bits.
@@ -122,7 +103,7 @@ pub fn is_virtual_address_canonical(virtual_address: usize) -> bool {
         .checked_sub(1)
         .unwrap();
 
-    matches!(virtual_address >> sign_extension_check_shift, 0 | 0x1ffff)
+    matches!(virtual_address >> sign_extension_check_shift, 0 | 0x1FFFF)
 }
 
 #[must_use]

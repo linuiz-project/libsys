@@ -1,6 +1,6 @@
 #![no_std]
-#![feature(step_trait)]
-#![warn(clippy::pedantic)]
+#![feature(cfg_select, step_trait)]
+#![warn(clippy::pedantic, clippy::todo)]
 
 // In the future, there may be a platform where the pointer width does not
 // exactly match CPU's the register width. In that case, we may need to

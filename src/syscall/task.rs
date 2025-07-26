@@ -1,37 +1,26 @@
-use super::{Result, Vector};
+use crate::syscall::{Vector, syscall_0};
 
-pub fn yield_task() -> Result {
-    // Safety: We're very careful.
-    unsafe {
-        let discriminant: usize;
-        let value: usize;
-
-        core::arch::asm!(
-            "int 0x80",
-            in("rax") Vector::TaskYield as usize,
-            out("rdi") discriminant,
-            out("rsi") value,
-            options(nostack, nomem, preserves_flags)
-        );
-
-        <Result as super::ResultConverter>::from_registers((discriminant, value))
-    }
+#[repr(usize)]
+#[derive(Debug, Error, IntoPrimitive, TryFromPrimitive)]
+pub enum Error {
+    #[error("there was no active task")]
+    NoTask = 1,
 }
 
-pub fn exit_task() -> Result {
-    // Safety: We're very careful.
-    unsafe {
-        let discriminant: usize;
-        let value: usize;
+/// Defers execution of the currently active task.
+///
+/// # Errors
+///
+/// - [`Error::NoTask`] if there's no active task on the current hardware thread.
+pub fn defer() -> Result<(), Error> {
+    syscall_0(Vector::TaskDefer).map(|_| ())
+}
 
-        core::arch::asm!(
-            "int 0x80",
-            in("rax") Vector::TaskExit as usize,
-            out("rdi") discriminant,
-            out("rsi") value,
-            options(nostack, nomem, preserves_flags)
-        );
-
-        <Result as super::ResultConverter>::from_registers((discriminant, value))
-    }
+/// Kills the currently active task.
+///
+/// # Errors
+///
+/// - [`Error::NoTask`] if there's no active task on the current hardware thread.
+pub fn kill() -> Result<(), Error> {
+    syscall_0(Vector::TaskKill).map(|_| ())
 }

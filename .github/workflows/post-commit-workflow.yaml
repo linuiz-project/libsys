@@ -1,0 +1,49 @@
+name: Post-commit Validation
+
+on:
+  - pull_request
+
+env:
+  NIGHTLY_VERSION: nightly-2025-07-25
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  validation:
+    name: Build & Formatting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        id: cache
+        with:
+          path: |
+            ~/.rustup/
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-${{ env.NIGHTLY_VERSION }}-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install Dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          rustup toolchain install --profile minimal --component rust-src,rustfmt,clippy $NIGHTLY_VERSION
+          cargo install cargo-sort
+
+      - name: Configure Environment
+        run: rustup default $NIGHTLY_VERSION
+
+      - name: Check Formatting
+        run: cargo fmt --check
+
+      - name: Check Dependency Ordering
+        run: cargo sort --workspace --grouped --check
+
+      - name: Check Build Status
+        run: cargo clippy -- -D warnings
+
+      - name: Run Tests
+        run: cargo test

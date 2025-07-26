@@ -1,9 +1,11 @@
-use crate::{checked_virt_canonical, virt_noncanonical_shift};
+use crate::{
+    Address, Addressable, is_virtual_address_canonical, virtual_address_noncanonical_shift,
+};
 
 #[derive(Debug)]
 pub struct Virtual;
 
-impl super::Addressable for Virtual {
+impl Addressable for Virtual {
     type Init = usize;
     type Repr = usize;
     type Get = usize;
@@ -11,12 +13,16 @@ impl super::Addressable for Virtual {
     const DEBUG_NAME: &'static str = "Address<Virtual>";
 
     fn new(init: Self::Init) -> Option<Self::Repr> {
-        checked_virt_canonical(init).then_some(init)
+        is_virtual_address_canonical(init).then_some(init)
     }
 
     fn new_truncate(init: Self::Init) -> Self::Repr {
-        let sign_extension_shift = Self::Init::BITS - virt_noncanonical_shift().get();
+        let sign_extension_shift = Self::Init::BITS - virtual_address_noncanonical_shift().get();
         (((init << sign_extension_shift) as isize) >> sign_extension_shift) as Self::Repr
+    }
+
+    unsafe fn new_unsafe(init: Self::Init) -> Self::Repr {
+        init
     }
 
     fn get(repr: Self::Repr) -> Self::Get {
@@ -24,12 +30,8 @@ impl super::Addressable for Virtual {
     }
 }
 
-impl super::PtrAddressable for Virtual {
-    fn from_ptr<T>(ptr: *mut T) -> Self::Repr {
-        ptr.addr()
-    }
-
-    fn as_ptr(repr: Self::Repr) -> *mut u8 {
-        repr as *mut u8
+impl<T> From<*mut T> for Address<Virtual> {
+    fn from(value: *mut T) -> Self {
+        Self(value.addr())
     }
 }

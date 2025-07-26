@@ -16,7 +16,35 @@ impl super::Addressable for Physical {
         init & crate::constants::physical_address_mask()
     }
 
+    unsafe fn new_unsafe(init: Self::Init) -> Self::Repr {
+        init
+    }
+
     fn get(repr: Self::Repr) -> Self::Get {
         repr
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{Address, Physical};
+
+    #[test]
+    fn get() {
+        assert_eq!((unsafe { Address::<Physical>::new_unsafe(0xF) }).get(), 0xF);
+    }
+
+    #[test]
+    fn new() {
+        assert_eq!(Address::<Physical>::new(0xFFF0_0000_0000_000F), None);
+        assert_eq!(Address::<Physical>::new(0xF).map(Address::get), Some(0xF));
+    }
+
+    #[test]
+    fn new_truncate() {
+        assert_eq!(
+            Address::<Physical>::new_truncate(0xFFF0_0000_0000_000F).get(),
+            0xF
+        );
     }
 }

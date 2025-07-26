@@ -1,17 +1,17 @@
-use core::num::NonZeroU32;
+use core::num::NonZero;
 
 /// Bit shift required to offset page indexes.
-pub const fn page_shift() -> NonZeroU32 {
-    NonZeroU32::new(12).unwrap()
+pub const fn page_shift() -> NonZero<u32> {
+    NonZero::<u32>::new(12).unwrap()
 }
 
 /// Bit shift required to offset mega page indexes.
-pub const fn mega_page_shift() -> NonZeroU32 {
+pub const fn mega_page_shift() -> NonZero<u32> {
     page_shift().checked_add(table_index_shift().get()).unwrap()
 }
 
 /// Bit shift required to offset giga page indexes.
-pub const fn giga_page_shift() -> NonZeroU32 {
+pub const fn giga_page_shift() -> NonZero<u32> {
     mega_page_shift()
         .checked_add(table_index_shift().get())
         .unwrap()
@@ -19,17 +19,17 @@ pub const fn giga_page_shift() -> NonZeroU32 {
 
 /// The size of a page in bytes.
 pub const fn page_size() -> usize {
-    1 << page_shift().get()
+    1usize.checked_shl(page_shift().get()).unwrap()
 }
 
 /// The size of a mega page in bytes.
 pub const fn mega_page_size() -> usize {
-    512 * page_size()
+    1usize.checked_shl(mega_page_shift().get()).unwrap()
 }
 
 /// The size of a giga page in bytes.
 pub const fn giga_page_size() -> usize {
-    512 * mega_page_size()
+    1usize.checked_shl(giga_page_shift().get()).unwrap()
 }
 
 /// Bit-mask of non-index page bytes.
@@ -48,8 +48,8 @@ pub const fn giga_page_mask() -> usize {
 }
 
 /// Shift (in bits) of a page table index.
-pub const fn table_index_shift() -> NonZeroU32 {
-    NonZeroU32::new(9).unwrap()
+pub const fn table_index_shift() -> NonZero<u32> {
+    NonZero::<u32>::new(9).unwrap()
 }
 
 /// Size (in bytes) of a page table index.
@@ -73,9 +73,9 @@ pub const fn is_physical_address_canonical(physical_address: usize) -> bool {
 
 /// The maximum paging depth (either 4 or 5) of the current environment.
 pub fn max_paging_depth() -> u32 {
-    const CR4_LA57_BIT: u64 = 1 << 12;
+    const CR4_LA57_BIT: usize = 1 << 12;
 
-    let cr4: u64;
+    let cr4: usize;
 
     unsafe {
         core::arch::asm!(
@@ -89,15 +89,22 @@ pub fn max_paging_depth() -> u32 {
 }
 
 /// Bit-shift to reach non-canonical bits of a virtual address.
-pub fn virt_noncanonical_shift() -> NonZeroU32 {
-    let table_indexes_shift = table_index_shift().get() * max_paging_depth();
-    let total_shift = table_indexes_shift + page_shift().get();
+pub fn virtual_address_noncanonical_shift() -> NonZero<u32> {
+    let table_indexes_shift = table_index_shift()
+        .get()
+        .checked_mul(max_paging_depth())
+        .unwrap();
+    let total_shift = table_indexes_shift.checked_add(page_shift().get()).unwrap();
 
-    NonZeroU32::new(total_shift).unwrap()
+    NonZero::<u32>::new(total_shift).unwrap()
 }
 
 /// Checks whether a provided address has only the canonical virtual bits.
-pub fn checked_virt_canonical(address: usize) -> bool {
-    let sign_extension_check_shift = virt_noncanonical_shift().get().checked_sub(1).unwrap();
-    matches!(address >> sign_extension_check_shift, 0 | 0x1ffff)
+pub fn is_virtual_address_canonical(virtual_address: usize) -> bool {
+    let sign_extension_check_shift = virtual_address_noncanonical_shift()
+        .get()
+        .checked_sub(1)
+        .unwrap();
+
+    matches!(virtual_address >> sign_extension_check_shift, 0 | 0x1ffff)
 }

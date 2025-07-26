@@ -1,8 +1,11 @@
-use crate::{Address, Virtual, checked_virt_canonical, page_mask, page_shift};
+use crate::{
+    Address, Addressable, NonCanonicalError, Virtual, is_virtual_address_canonical, page_mask,
+    page_shift,
+};
 
 pub struct Page;
 
-impl super::Addressable for Page {
+impl Addressable for Page {
     type Init = usize;
     type Repr = usize;
     type Get = Address<Virtual>;
@@ -10,11 +13,15 @@ impl super::Addressable for Page {
     const DEBUG_NAME: &'static str = "Address<Page>";
 
     fn new(init: Self::Init) -> Option<Self::Repr> {
-        (((init & page_mask()) == 0) && crate::checked_virt_canonical(init)).then_some(init)
+        (((init & page_mask()) == 0) && is_virtual_address_canonical(init)).then_some(init)
     }
 
     fn new_truncate(init: Self::Init) -> Self::Repr {
         init & !page_mask()
+    }
+
+    unsafe fn new_unsafe(init: Self::Init) -> Self::Repr {
+        init
     }
 
     fn get(repr: Self::Repr) -> Self::Get {
@@ -22,23 +29,44 @@ impl super::Addressable for Page {
     }
 }
 
-impl super::PtrAddressable for Page {
-    fn from_ptr<T>(ptr: *mut T) -> Self::Repr {
-        ptr.addr()
+impl Address<Page> {
+    pub fn from_index(index: usize) -> Result<Self, NonCanonicalError> {
+        let virtual_address = index << page_shift().get();
+
+        if is_virtual_address_canonical(virtual_address) {
+            Ok(Self(virtual_address))
+        } else {
+            Err(NonCanonicalError)
+        }
     }
 
-    fn as_ptr(repr: Self::Repr) -> *mut u8 {
-        repr as *mut u8
+    pub fn index(&self) -> usize {
+        self.0 >> page_shift().get()
     }
 }
 
-impl super::IndexAddressable for Page {
-    fn from_index(index: usize) -> Option<Self::Repr> {
-        let address = index.rotate_left(page_shift().get());
-        ((address & page_mask()) == 0 && checked_virt_canonical(address)).then_some(address)
+impl<T> From<*mut T> for Address<Page> {
+    fn from(value: *mut T) -> Self {
+        Self(value.addr())
+    }
+}
+
+impl core::iter::Step for Address<Page> {
+    fn steps_between(start: &Self, end: &Self) -> (usize, Option<usize>) {
+        core::iter::Step::steps_between(&start.index(), &end.index())
     }
 
-    fn index(repr: Self::Repr) -> usize {
-        repr >> page_shift().get()
+    fn forward_checked(start: Self, count: usize) -> Option<Self> {
+        start
+            .index()
+            .checked_add(count)
+            .and_then(|next_index| Self::from_index(next_index).ok())
+    }
+
+    fn backward_checked(start: Self, count: usize) -> Option<Self> {
+        start
+            .index()
+            .checked_sub(count)
+            .and_then(|next_index| Self::from_index(next_index).ok())
     }
 }

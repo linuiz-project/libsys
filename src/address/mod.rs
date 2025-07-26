@@ -1,16 +1,19 @@
 mod frame;
-mod page;
-mod physical;
-mod r#virtual;
-
 pub use frame::*;
+
+mod page;
 pub use page::*;
+
+mod physical;
 pub use physical::*;
+
+mod r#virtual;
 pub use r#virtual::*;
 
-use core::fmt;
+mod error;
+pub use error::*;
 
-pub trait Addressable: Sized {
+pub trait Addressable {
     type Repr;
     type Init;
     type Get;
@@ -19,24 +22,12 @@ pub trait Addressable: Sized {
 
     fn new(init: Self::Init) -> Option<Self::Repr>;
     fn new_truncate(init: Self::Init) -> Self::Repr;
+    unsafe fn new_unsafe(init: Self::Init) -> Self::Repr;
 
     fn get(repr: Self::Repr) -> Self::Get;
 }
 
-pub trait PtrAddressable: Addressable {
-    fn from_ptr<T>(ptr: *mut T) -> Self::Repr;
-    fn as_ptr(repr: Self::Repr) -> *mut u8;
-}
-
-pub trait IndexAddressable: Addressable {
-    fn from_index(index: usize) -> Option<Self::Repr>;
-    fn index(repr: Self::Repr) -> usize;
-}
-
-pub trait DefaultableAddressKind: Addressable {
-    fn default() -> Self::Repr;
-}
-
+#[repr(transparent)]
 pub struct Address<Kind: Addressable>(Kind::Repr);
 
 impl<Kind: Addressable> Address<Kind> {
@@ -48,55 +39,49 @@ impl<Kind: Addressable> Address<Kind> {
         Self(Kind::new_truncate(init))
     }
 
+    pub unsafe fn new_unsafe(init: Kind::Init) -> Self {
+        // Safety: Caller is required to maintain safety invariants.
+        let repr = unsafe { Kind::new_unsafe(init) };
+        Self(repr)
+    }
+
     pub fn get(self) -> Kind::Get {
         Kind::get(self.0)
     }
 }
 
-impl<Kind: PtrAddressable> Address<Kind> {
-    pub fn from_ptr<T>(ptr: *mut T) -> Self {
-        Self(Kind::from_ptr(ptr))
-    }
-
-    pub fn as_ptr(self) -> *mut u8 {
-        Kind::as_ptr(self.0)
-    }
-}
-
-impl<Kind: IndexAddressable> Address<Kind> {
-    pub fn from_index(index: usize) -> Option<Self> {
-        Kind::from_index(index).map(Self)
-    }
-
-    pub fn index(self) -> usize {
-        Kind::index(self.0)
-    }
-}
-
-impl<Repr: Default, I, Kind: Addressable<Init = I, Repr = Repr>> Default for Address<Kind> {
-    fn default() -> Self {
-        Self(Repr::default())
-    }
-}
-
-impl<Repr: Clone, I, Kind: Addressable<Init = I, Repr = Repr>> Clone for Address<Kind> {
+impl<I, Repr: Clone, Kind: Addressable<Init = I, Repr = Repr>> Clone for Address<Kind> {
     fn clone(&self) -> Self {
         Self(self.0.clone())
     }
 }
 
-impl<Repr: Copy, I, Kind: Addressable<Init = I, Repr = Repr>> Copy for Address<Kind> {}
+impl<I, Repr: Copy, Kind: Addressable<Init = I, Repr = Repr>> Copy for Address<Kind> {}
 
-impl<Repr: PartialEq, I, Kind: Addressable<Init = I, Repr = Repr>> PartialEq for Address<Kind> {
+impl<I, Repr: PartialEq, Kind: Addressable<Init = I, Repr = Repr>> PartialEq for Address<Kind> {
     fn eq(&self, other: &Self) -> bool {
-        self.0.eq(&other.0)
+        self.0 == other.0
     }
 }
 
-impl<Repr: Eq, I, Kind: Addressable<Init = I, Repr = Repr>> Eq for Address<Kind> {}
+impl<I, Repr: Eq, Kind: Addressable<Init = I, Repr = Repr>> Eq for Address<Kind> {}
 
-impl<I, Repr: fmt::Debug, Kind: Addressable<Init = I, Repr = Repr>> fmt::Debug for Address<Kind> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl<I, Repr: Ord, Kind: Addressable<Init = I, Repr = Repr>> Ord for Address<Kind> {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        self.0.cmp(&other.0)
+    }
+}
+
+impl<I, Repr: PartialOrd, Kind: Addressable<Init = I, Repr = Repr>> PartialOrd for Address<Kind> {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        self.0.partial_cmp(&other.0)
+    }
+}
+
+impl<I, Repr: core::fmt::Debug, Kind: Addressable<Init = I, Repr = Repr>> core::fmt::Debug
+    for Address<Kind>
+{
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_tuple(Kind::DEBUG_NAME).field(&self.0).finish()
     }
 }

@@ -7,6 +7,5 @@
         ],
         "editor.defaultFormatter": "rust-lang.rust-analyzer"
     },
-    "rust-analyzer.showUnlinkedFileNotification": false,
-    "rust-analyzer.cargo.allTargets": false,
+    "rust-analyzer.showUnlinkedFileNotification": false
 }

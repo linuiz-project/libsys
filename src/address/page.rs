@@ -115,3 +115,58 @@ impl<T> From<*mut T> for Address<Page> {
         Self(value.addr())
     }
 }
+
+impl core::fmt::Debug for Address<Page> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_tuple("Address<Page>").field(&self.0).finish()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::address::{Address, NonCanonicalError, Page, Virtual};
+
+    #[test]
+    fn get() {
+        assert_eq!(
+            (unsafe { Address::<Page>::new_unsafe(0xF000) }).get(),
+            unsafe { Address::<Virtual>::new_unsafe(0xF000) }
+        );
+    }
+
+    #[test]
+    fn new() {
+        assert_eq!(
+            Address::<Page>::new(0xFFFF_0000_0000_F000),
+            Err(NonCanonicalError)
+        );
+    }
+
+    #[test]
+    fn new_truncate() {
+        assert_eq!(
+            Address::<Page>::new_truncate(0xFFF0_0000_0000_F000).get(),
+            Address::<Virtual>::new_truncate(0xFFF0_0000_0000_F000)
+        );
+    }
+
+    #[test]
+    fn index() {
+        assert_eq!(
+            Address::<Page>::from_index(0xF).map(|page| page.index()),
+            Ok(0xF)
+        );
+    }
+
+    #[test]
+    fn from_index() {
+        assert_eq!(
+            Address::<Page>::from_index(0xFFF0_0000_0000_F),
+            Err(NonCanonicalError)
+        );
+        assert_eq!(
+            Address::<Page>::from_index(0xF).map(|address| address.get()),
+            Ok(unsafe { Address::<Virtual>::new_unsafe(0xF000) })
+        );
+    }
+}

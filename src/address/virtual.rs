@@ -80,3 +80,33 @@ impl core::fmt::Debug for Address<Virtual> {
         f.debug_tuple("Address<Virtual>").field(&self.0).finish()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::address::{Address, NonCanonicalError, Virtual};
+
+    #[test]
+    fn get() {
+        assert_eq!((unsafe { Address::<Virtual>::new_unsafe(0xF) }).get(), 0xF);
+    }
+
+    #[test]
+    fn new() {
+        assert_eq!(
+            Address::<Virtual>::new(0xFFF0_0000_0000_000F),
+            Err(NonCanonicalError)
+        );
+        assert_eq!(
+            Address::<Virtual>::new(0xF).map(|address| address.get()),
+            Ok(0xF)
+        );
+    }
+
+    #[test]
+    fn new_truncate() {
+        assert_eq!(
+            Address::<Virtual>::new_truncate(0xFFF0_0000_0000_000F).get(),
+            0xF
+        );
+    }
+}

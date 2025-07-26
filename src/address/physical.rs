@@ -69,6 +69,12 @@ impl Address<Physical> {
     }
 }
 
+impl core::fmt::Debug for Address<Physical> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_tuple("Address<Physical>").field(&self.0).finish()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::address::{Address, NonCanonicalError, Physical};
@@ -96,11 +102,5 @@ mod tests {
             Address::<Physical>::new_truncate(0xFFF0_0000_0000_000F).get(),
             0xF
         );
-    }
-}
-
-impl core::fmt::Debug for Address<Physical> {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.debug_tuple("Address<Physical>").field(&self.0).finish()
     }
 }

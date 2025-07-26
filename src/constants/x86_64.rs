@@ -76,7 +76,6 @@ pub fn max_paging_depth() -> u32 {
     const CR4_LA57_BIT: usize = 1 << 12;
 
     let cr4: usize;
-
     unsafe {
         core::arch::asm!(
             "mov {}, cr4",

@@ -1,39 +1,36 @@
-pub enum YieldTaskError {
-    NoTask,
+use crate::syscall::{SyscallResult, Vector, syscall};
+
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("there was no active task")]
+    NoTask = 1,
 }
 
-pub fn yield_task() -> Result {
-    // Safety: We're very careful.
-    unsafe {
-        let discriminant: usize;
-        let value: usize;
+impl From<SyscallResult> for Result<(), Error> {
+    fn from(result: SyscallResult) -> Self {
+        match result.code {
+            0 => Ok(()),
+            1 => Err(Error::NoTask),
 
-        core::arch::asm!(
-            "int 0x80",
-            in("rax") Vector::TaskYield as usize,
-            out("rdi") discriminant,
-            out("rsi") value,
-            options(preserves_flags)
-        );
-
-        <Result as super::ResultConverter>::from_registers((discriminant, value))
+            code => unreachable!("syscall returned invalid result code: {code}"),
+        }
     }
 }
 
-pub fn exit_task() -> Result {
-    // Safety: We're very careful.
-    unsafe {
-        let discriminant: usize;
-        let value: usize;
+/// Defers execution of the currently active task.
+///
+/// # Errors
+///
+/// - [`Error::NoTask`] if there's no active task on the current hardware thread.
+pub fn defer() -> Result<(), Error> {
+    syscall(Vector::TaskDefer, 0, 0, 0, 0).into()
+}
 
-        core::arch::asm!(
-            "int 0x80",
-            in("rax") Vector::TaskExit as usize,
-            out("rdi") discriminant,
-            out("rsi") value,
-            options(preserves_flags)
-        );
-
-        <Result as super::ResultConverter>::from_registers((discriminant, value))
-    }
+/// Kills the currently active task.
+///
+/// # Errors
+///
+/// - [`Error::NoTask`] if there's no active task on the current hardware thread.
+pub fn kill() -> Result<(), Error> {
+    syscall(Vector::TaskKill, 0, 0, 0, 0).into()
 }

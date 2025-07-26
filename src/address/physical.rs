@@ -37,6 +37,11 @@ impl PartialOrd for Address<Physical> {
 }
 
 impl Address<Physical> {
+    /// Creates a new [`Address<Physical>`] with the provided address.
+    ///
+    /// # Errors
+    ///
+    /// - [`NonCanonicalError`] if `address` contains any non-canonical bits.
     pub fn new(address: usize) -> Result<Self, NonCanonicalError> {
         if is_physical_address_canonical(address) {
             Ok(Self(address))

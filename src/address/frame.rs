@@ -36,6 +36,11 @@ impl PartialOrd for Address<Frame> {
 }
 
 impl Address<Frame> {
+    /// Creates a new [`Address<Frame>`] with the provided address.
+    ///
+    /// # Errors
+    ///
+    /// - [`NonCanonicalError`] if `address` contains any non-canonical bits.
     pub fn new(address: usize) -> Result<Self, NonCanonicalError> {
         if ((address & page_mask()) == 0) && is_physical_address_canonical(address) {
             Ok(Self(address))
@@ -64,6 +69,11 @@ impl Address<Frame> {
         unsafe { Address::<Physical>::new_unsafe(self.0) }
     }
 
+    /// Creates a new [`Address<Virtual>`] with the provided frame index.
+    ///
+    /// # Errors
+    ///
+    /// - [`NonCanonicalError`] if `index` would create a non-canonical address.
     pub fn from_index(index: usize) -> Result<Self, NonCanonicalError> {
         let physical_address = index << page_shift().get();
 

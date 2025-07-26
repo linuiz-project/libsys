@@ -37,6 +37,11 @@ impl PartialOrd for Address<Virtual> {
 }
 
 impl Address<Virtual> {
+    /// Creates a new [`Address<Virtual>`] with the provided address.
+    ///
+    /// # Errors
+    ///
+    /// - [`NonCanonicalError`] if `address` contains any non-canonical bits.
     pub fn new(address: usize) -> Result<Self, NonCanonicalError> {
         if is_virtual_address_canonical(address) {
             Ok(Self(address))

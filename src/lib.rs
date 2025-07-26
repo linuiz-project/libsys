@@ -8,11 +8,12 @@
 // sizes of the CPU-internal structures.
 
 #[macro_use]
-extern crate static_assertions;
+extern crate thiserror;
+
+#[macro_use]
+extern crate num_enum;
 
 pub mod address;
 pub mod constants;
 pub mod math;
 pub mod syscall;
-
-

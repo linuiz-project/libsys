@@ -1,38 +1,41 @@
 pub mod klog;
 pub mod task;
 
-use core::ffi::c_void;
-use num_enum::TryFromPrimitive;
-
 #[repr(usize)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, TryFromPrimitive, Hash)]
+#[derive(Debug, IntoPrimitive, TryFromPrimitive, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Vector {
-    KlogInfo = 0x100,
-    KlogError = 0x101,
-    KlogDebug = 0x102,
-    KlogTrace = 0x103,
+    KlogTrace = 0x100,
+    KlogDebug = 0x101,
+    KlogInfo = 0x102,
+    KlogWarn = 0x103,
+    KlogError = 0x104,
 
-    TaskExit = 0x200,
-    TaskYield = 0x201,
+    TaskKill = 0x200,
+    TaskDefer = 0x201,
 }
 
-
-const_assert!(size_of::<Result>() == size_of::<(u64, u64)>());
-
-#[repr(u32)]
-#[derive(Debug, TryFromPrimitive, Clone, Copy, PartialEq, Eq)]
-pub enum Error {
-    InvalidVector = 0x10000,
-    InvalidPtr = 0x20000,
-    InvalidUtf8 = 0x30000,
-
-    UnmappedMemory = 0x40000,
-
-    NoActiveTask = 0x50000,
+#[allow(dead_code)]
+struct SyscallResult {
+    code: isize,
+    value: usize,
 }
 
-impl From<core::str::Utf8Error> for Error {
-    fn from(_: core::str::Utf8Error) -> Self {
-        Self::InvalidUtf8
+#[cfg(target_arch = "x86_64")]
+fn syscall(vector: Vector, arg0: usize, arg1: usize, arg2: usize, arg3: usize) -> SyscallResult {
+    let code: isize;
+    let value: usize;
+
+    unsafe {
+        core::arch::asm!(
+            "int 0x80",
+            inout("rsi") usize::from(vector) => value,
+            inout("rdi") arg0 => code,
+            in("rax") arg1,
+            in("rcx") arg2,
+            in("rdx") arg3,
+            options(preserves_flags)
+        );
+
+        SyscallResult { code, value }
     }
 }

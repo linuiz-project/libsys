@@ -1,46 +1,63 @@
-use super::{Result, Vector};
+use crate::syscall::{SyscallResult, Vector, syscall};
 
-enum KlogKind {
-    Info = 0,
-    Error = 1,
-    Debug = 2,
-    Trace = 3,
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("provided log string was not mapped into memory")]
+    NotMapped,
 }
 
-pub fn info(str: &str) -> Result<(), Error> {
-    klog(KlogKind::Info, str)
-}
+impl From<SyscallResult> for Result<(), Error> {
+    fn from(result: SyscallResult) -> Self {
+        match result.code {
+            0 => Ok(()),
+            1 => Err(Error::NotMapped),
 
-pub fn error(str: &str) -> Result {
-    klog(KlogKind::Error, str)
-}
-
-pub fn debug(str: &str) -> Result {
-    klog(KlogKind::Debug, str)
-}
-
-pub fn trace(str: &str) -> Result {
-    klog(KlogKind::Trace, str)
-}
-
-fn klog(offset: KlogKind, str: &str) -> Result {
-    let vector = (Vector::KlogInfo as usize) + (offset as usize);
-    let str_ptr = str.as_ptr();
-    let str_len = str.len();
-
-    // Safety: It isn't.
-    unsafe {
-        let discriminant: usize;
-        let value: usize;
-
-        core::arch::asm!(
-            "int 0x80",
-            in("rax") vector,
-            inout("rdi") str_ptr => discriminant,
-            inout("rsi") str_len => value,
-            options(nostack, preserves_flags)
-        );
-
-        <Result as super::ResultConverter>::from_registers((discriminant, value))
+            code => unreachable!("kernel returned invalid result code: {code}"),
+        }
     }
+}
+
+/// Logs a trace-level message to the kernel journal.
+///
+/// # Errors
+///
+/// - [`Error::NotMapped`] if the `str` is not mapped in the active address space.
+pub fn trace(str: &str) -> Result<(), Error> {
+    syscall(Vector::KlogTrace, str.as_ptr().addr(), str.len(), 0, 0).into()
+}
+
+/// Logs a debug-level message to the kernel journal.
+///
+/// # Errors
+///
+/// - [`Error::NotMapped`] if the `str` is not mapped in the active address space.
+pub fn debug(str: &str) -> Result<(), Error> {
+    syscall(Vector::KlogDebug, str.as_ptr().addr(), str.len(), 0, 0).into()
+}
+
+/// Logs a info-level message to the kernel journal.
+///
+/// # Errors
+///
+/// - [`Error::NotMapped`] if the `str` is not mapped in the active address space.
+pub fn info(str: &str) -> Result<(), Error> {
+    syscall(Vector::KlogInfo, str.as_ptr().addr(), str.len(), 0, 0).into()
+}
+
+/// Logs a warn-level message to the kernel journal.
+///
+/// # Errors
+///
+/// - [`Error::NotMapped`] if the `str` is not mapped in the active address space.
+pub fn warn(str: &str) -> Result<(), Error> {
+    syscall(Vector::KlogWarn, str.as_ptr().addr(), str.len(), 0, 0).into()
+}
+
+/// Logs a error-level message to the kernel journal.
+///
+/// # Errors
+///
+/// - [`Error::NotMapped`] if the `str` is not mapped in the active address space.
+pub fn error(str: &str) -> Result<(), Error> {
+    syscall(Vector::KlogError, str.as_ptr().addr(), str.len(), 0, 0).into()
 }

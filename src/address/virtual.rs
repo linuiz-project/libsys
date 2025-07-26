@@ -1,37 +1,77 @@
 use crate::{
-    Address, Addressable, is_virtual_address_canonical, virtual_address_noncanonical_shift,
+    address::{Address, AddressKind, NonCanonicalError},
+    constants::{is_virtual_address_canonical, truncate_virtual_address},
 };
 
 #[derive(Debug)]
 pub struct Virtual;
 
-impl Addressable for Virtual {
-    type Init = usize;
+impl AddressKind for Virtual {
     type Repr = usize;
-    type Get = usize;
+}
 
-    const DEBUG_NAME: &'static str = "Address<Virtual>";
+impl Copy for Address<Virtual> {}
+impl Clone for Address<Virtual> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
 
-    fn new(init: Self::Init) -> Option<Self::Repr> {
-        is_virtual_address_canonical(init).then_some(init)
+impl Eq for Address<Virtual> {}
+impl PartialEq for Address<Virtual> {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+impl Ord for Address<Virtual> {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        self.0.cmp(&other.0)
+    }
+}
+
+impl PartialOrd for Address<Virtual> {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Address<Virtual> {
+    pub fn new(address: usize) -> Result<Self, NonCanonicalError> {
+        if is_virtual_address_canonical(address) {
+            Ok(Self(address))
+        } else {
+            Err(NonCanonicalError)
+        }
     }
 
-    fn new_truncate(init: Self::Init) -> Self::Repr {
-        let sign_extension_shift = Self::Init::BITS - virtual_address_noncanonical_shift().get();
-        (((init << sign_extension_shift) as isize) >> sign_extension_shift) as Self::Repr
+    #[must_use]
+    pub fn new_truncate(address: usize) -> Self {
+        Self(truncate_virtual_address(address))
     }
 
-    unsafe fn new_unsafe(init: Self::Init) -> Self::Repr {
-        init
+    /// # Safety
+    ///
+    /// - `address` must have only canonical virtual address bits set.
+    #[must_use]
+    pub unsafe fn new_unsafe(address: usize) -> Self {
+        Self(address)
     }
 
-    fn get(repr: Self::Repr) -> Self::Get {
-        repr
+    #[must_use]
+    pub fn get(&self) -> usize {
+        self.0
     }
 }
 
 impl<T> From<*mut T> for Address<Virtual> {
-    fn from(value: *mut T) -> Self {
-        Self(value.addr())
+    fn from(ptr: *mut T) -> Self {
+        Self(ptr.addr())
+    }
+}
+
+impl core::fmt::Debug for Address<Virtual> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_tuple("Address<Virtual>").field(&self.0).finish()
     }
 }

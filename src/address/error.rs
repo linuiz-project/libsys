@@ -8,6 +8,7 @@ impl core::error::Error for NonCanonicalError {
         None
     }
 
+    #[allow(clippy::unnecessary_literal_bound)]
     fn description(&self) -> &str {
         "description() is deprecated; use Display"
     }

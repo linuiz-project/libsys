@@ -16,69 +16,11 @@ pub enum Vector {
     TaskYield = 0x201,
 }
 
-pub type Result = core::result::Result<Success, Error>;
 
-const_assert!({
-    use core::mem::size_of;
-    size_of::<Result>() <= size_of::<(u64, u64)>()
-});
-
-pub trait ResultConverter {
-    type Registers;
-
-    fn from_registers(regs: Self::Registers) -> Self;
-    fn into_registers(self) -> Self::Registers;
-}
-
-impl ResultConverter for Result {
-    type Registers = (usize, usize);
-
-    fn from_registers((discriminant, value): Self::Registers) -> Self {
-        let discriminant = u32::try_from(discriminant).unwrap();
-        match Error::try_from_primitive(discriminant).map_err(|err| err.number) {
-            Ok(err) => Err(err),
-
-            Err(0x0) => Ok(Success::Ok),
-            Err(0x1) => Ok(Success::Ptr(value as *mut c_void)),
-            Err(0x2) => Ok(Success::NonNullPtr(
-                core::ptr::NonNull::new(value as *mut c_void).unwrap(),
-            )),
-
-            Err(_) => unimplemented!(),
-        }
-    }
-
-    fn into_registers(self) -> Self::Registers {
-        match self {
-            Ok(success @ Success::Ok) => (success.discriminant() as usize, usize::default()),
-            Ok(success @ Success::Ptr(ptr)) => (success.discriminant() as usize, ptr.addr()),
-            Ok(success @ Success::NonNullPtr(ptr)) => {
-                (success.discriminant() as usize, ptr.addr().get())
-            }
-
-            Err(err) => (err as usize, Default::default()),
-        }
-    }
-}
+const_assert!(size_of::<Result>() == size_of::<(u64, u64)>());
 
 #[repr(u32)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Success {
-    Ok = 0x0,
-    Ptr(*mut c_void) = 0x1,
-    NonNullPtr(core::ptr::NonNull<c_void>) = 0x2,
-}
-
-impl Success {
-    #[inline]
-    const fn discriminant(&self) -> u32 {
-        // Safety: discrimnent is guaranteed to be the first bytes
-        unsafe { *(self as *const Self as *const u32) }
-    }
-}
-
-#[repr(u32)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, TryFromPrimitive)]
+#[derive(Debug, TryFromPrimitive, Clone, Copy, PartialEq, Eq)]
 pub enum Error {
     InvalidVector = 0x10000,
     InvalidPtr = 0x20000,

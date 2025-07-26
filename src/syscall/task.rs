@@ -1,4 +1,6 @@
-use super::{Result, Vector};
+pub enum YieldTaskError {
+    NoTask,
+}
 
 pub fn yield_task() -> Result {
     // Safety: We're very careful.
@@ -11,7 +13,7 @@ pub fn yield_task() -> Result {
             in("rax") Vector::TaskYield as usize,
             out("rdi") discriminant,
             out("rsi") value,
-            options(nostack, nomem, preserves_flags)
+            options(preserves_flags)
         );
 
         <Result as super::ResultConverter>::from_registers((discriminant, value))
@@ -29,7 +31,7 @@ pub fn exit_task() -> Result {
             in("rax") Vector::TaskExit as usize,
             out("rdi") discriminant,
             out("rsi") value,
-            options(nostack, nomem, preserves_flags)
+            options(preserves_flags)
         );
 
         <Result as super::ResultConverter>::from_registers((discriminant, value))

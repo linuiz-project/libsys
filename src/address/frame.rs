@@ -1,35 +1,69 @@
 use crate::{
-    Address, Addressable, NonCanonicalError, Physical, is_physical_address_canonical, page_mask,
-    page_shift, physical_address_mask,
+    address::{Address, AddressKind, NonCanonicalError, Physical},
+    constants::{is_physical_address_canonical, page_mask, page_shift, truncate_physical_address},
 };
 
 pub struct Frame;
 
-impl Addressable for Frame {
-    type Init = usize;
+impl AddressKind for Frame {
     type Repr = usize;
-    type Get = Address<Physical>;
+}
 
-    const DEBUG_NAME: &'static str = "Address<Frame>";
-
-    fn new(init: Self::Init) -> Option<Self::Repr> {
-        (((init & page_mask()) == 0) && is_physical_address_canonical(init)).then_some(init)
+impl Copy for Address<Frame> {}
+impl Clone for Address<Frame> {
+    fn clone(&self) -> Self {
+        *self
     }
+}
 
-    fn new_truncate(init: Self::Init) -> Self::Repr {
-        init & physical_address_mask() & !page_mask()
+impl Eq for Address<Frame> {}
+impl PartialEq for Address<Frame> {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
     }
+}
 
-    unsafe fn new_unsafe(init: Self::Init) -> Self::Repr {
-        init
+impl Ord for Address<Frame> {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        self.0.cmp(&other.0)
     }
+}
 
-    fn get(repr: Self::Repr) -> Self::Get {
-        Address::new_truncate(repr)
+impl PartialOrd for Address<Frame> {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        Some(self.cmp(other))
     }
 }
 
 impl Address<Frame> {
+    pub fn new(address: usize) -> Result<Self, NonCanonicalError> {
+        if ((address & page_mask()) == 0) && is_physical_address_canonical(address) {
+            Ok(Self(address))
+        } else {
+            Err(NonCanonicalError)
+        }
+    }
+
+    #[must_use]
+    pub fn new_truncate(address: usize) -> Self {
+        Self(truncate_physical_address(address) & !page_mask())
+    }
+
+    /// # Safety
+    ///
+    /// - `address` must be page-aligned.
+    /// - `address` must have only canonical physical address bits set.
+    #[must_use]
+    pub unsafe fn new_unsafe(address: usize) -> Self {
+        Self(address)
+    }
+
+    #[must_use]
+    pub fn get(&self) -> Address<Physical> {
+        // Safety: `Address<Frame>` is a superset of `Address<Physical>`s validition ruleset.
+        unsafe { Address::<Physical>::new_unsafe(self.0) }
+    }
+
     pub fn from_index(index: usize) -> Result<Self, NonCanonicalError> {
         let physical_address = index << page_shift().get();
 
@@ -40,6 +74,7 @@ impl Address<Frame> {
         }
     }
 
+    #[must_use]
     pub fn index(&self) -> usize {
         self.0 >> page_shift().get()
     }
@@ -62,6 +97,12 @@ impl core::iter::Step for Address<Frame> {
             .index()
             .checked_sub(count)
             .and_then(|next_index| Self::from_index(next_index).ok())
+    }
+}
+
+impl core::fmt::Debug for Address<Frame> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_tuple("Address<Frame>").field(&self.0).finish()
     }
 }
 

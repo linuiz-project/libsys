@@ -25,7 +25,6 @@ jobs:
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
-            target/
           key: ${{ runner.os }}-cargo-${{ env.NIGHTLY_VERSION }}-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Install Dependencies

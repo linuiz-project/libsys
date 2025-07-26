@@ -20,22 +20,123 @@ struct SyscallResult {
     value: usize,
 }
 
-#[cfg(target_arch = "x86_64")]
-fn syscall(vector: Vector, arg0: usize, arg1: usize, arg2: usize, arg3: usize) -> SyscallResult {
+#[allow(dead_code)]
+fn syscall_0(vector: Vector) -> SyscallResult {
     let code: isize;
     let value: usize;
 
     unsafe {
-        core::arch::asm!(
-            "int 0x80",
-            inout("rsi") usize::from(vector) => value,
-            inout("rdi") arg0 => code,
-            in("rax") arg1,
-            in("rcx") arg2,
-            in("rdx") arg3,
-            options(preserves_flags)
-        );
+        cfg_select! {
+            target_arch = "x86_64" => {
+                core::arch::asm!(
+                    "int 0x80",
+                    inout("rsi") usize::from(vector) => value,
+                    out("rdi") code,
+                    options(preserves_flags)
+                );
+            }
 
-        SyscallResult { code, value }
+            _ => { todo!() }
+        }
     }
+
+    SyscallResult { code, value }
+}
+
+#[allow(dead_code)]
+fn syscall_1(vector: Vector, arg1: usize) -> SyscallResult {
+    let code: isize;
+    let value: usize;
+
+    unsafe {
+        cfg_select! {
+            target_arch = "x86_64" => {
+                core::arch::asm!(
+                    "int 0x80",
+                    inout("rsi") usize::from(vector) => value,
+                    inout("rdi") arg1 => code,
+                    options(preserves_flags)
+                );
+            }
+
+            _ => { todo!() }
+        }
+    }
+
+    SyscallResult { code, value }
+}
+
+#[allow(dead_code)]
+fn syscall_2(vector: Vector, arg1: usize, arg2: usize) -> SyscallResult {
+    let code: isize;
+    let value: usize;
+
+    unsafe {
+        cfg_select! {
+            target_arch = "x86_64" => {
+                core::arch::asm!(
+                    "int 0x80",
+                    inout("rsi") usize::from(vector) => value,
+                    inout("rdi") arg1 => code,
+                    in("rax") arg2,
+                    options(preserves_flags)
+                );
+            }
+
+            _ => { todo!() }
+        }
+    }
+
+    SyscallResult { code, value }
+}
+
+#[allow(dead_code)]
+fn syscall_3(vector: Vector, arg1: usize, arg2: usize, arg3: usize) -> SyscallResult {
+    let code: isize;
+    let value: usize;
+
+    unsafe {
+        cfg_select! {
+            target_arch = "x86_64" => {
+                core::arch::asm!(
+                    "int 0x80",
+                    inout("rsi") usize::from(vector) => value,
+                    inout("rdi") arg1 => code,
+                    in("rax") arg2,
+                    in("rcx") arg3,
+                    options(preserves_flags)
+                );
+            }
+
+            _ => { todo!() }
+        }
+    }
+
+    SyscallResult { code, value }
+}
+
+#[allow(dead_code)]
+fn syscall_4(vector: Vector, arg1: usize, arg2: usize, arg3: usize, arg4: usize) -> SyscallResult {
+    let code: isize;
+    let value: usize;
+
+    unsafe {
+        cfg_select! {
+            target_arch = "x86_64" => {
+                core::arch::asm!(
+                    "int 0x80",
+                    inout("rsi") usize::from(vector) => value,
+                    inout("rdi") arg1 => code,
+                    in("rax") arg2,
+                    in("rcx") arg3,
+                    in("rdx") arg4,
+                    options(preserves_flags)
+                );
+            }
+
+            _ => { todo!() }
+        }
+    }
+
+    SyscallResult { code, value }
 }

@@ -1,4 +1,4 @@
-use crate::syscall::{SyscallResult, Vector, syscall};
+use crate::syscall::{SyscallResult, Vector, syscall_2};
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -23,7 +23,7 @@ impl From<SyscallResult> for Result<(), Error> {
 ///
 /// - [`Error::NotMapped`] if the `str` is not mapped in the active address space.
 pub fn trace(str: &str) -> Result<(), Error> {
-    syscall(Vector::KlogTrace, str.as_ptr().addr(), str.len(), 0, 0).into()
+    syscall_2(Vector::KlogTrace, str.as_ptr().addr(), str.len()).into()
 }
 
 /// Logs a debug-level message to the kernel journal.
@@ -32,7 +32,7 @@ pub fn trace(str: &str) -> Result<(), Error> {
 ///
 /// - [`Error::NotMapped`] if the `str` is not mapped in the active address space.
 pub fn debug(str: &str) -> Result<(), Error> {
-    syscall(Vector::KlogDebug, str.as_ptr().addr(), str.len(), 0, 0).into()
+    syscall_2(Vector::KlogDebug, str.as_ptr().addr(), str.len()).into()
 }
 
 /// Logs a info-level message to the kernel journal.
@@ -41,7 +41,7 @@ pub fn debug(str: &str) -> Result<(), Error> {
 ///
 /// - [`Error::NotMapped`] if the `str` is not mapped in the active address space.
 pub fn info(str: &str) -> Result<(), Error> {
-    syscall(Vector::KlogInfo, str.as_ptr().addr(), str.len(), 0, 0).into()
+    syscall_2(Vector::KlogInfo, str.as_ptr().addr(), str.len()).into()
 }
 
 /// Logs a warn-level message to the kernel journal.
@@ -50,7 +50,7 @@ pub fn info(str: &str) -> Result<(), Error> {
 ///
 /// - [`Error::NotMapped`] if the `str` is not mapped in the active address space.
 pub fn warn(str: &str) -> Result<(), Error> {
-    syscall(Vector::KlogWarn, str.as_ptr().addr(), str.len(), 0, 0).into()
+    syscall_2(Vector::KlogWarn, str.as_ptr().addr(), str.len()).into()
 }
 
 /// Logs a error-level message to the kernel journal.
@@ -59,5 +59,5 @@ pub fn warn(str: &str) -> Result<(), Error> {
 ///
 /// - [`Error::NotMapped`] if the `str` is not mapped in the active address space.
 pub fn error(str: &str) -> Result<(), Error> {
-    syscall(Vector::KlogError, str.as_ptr().addr(), str.len(), 0, 0).into()
+    syscall_2(Vector::KlogError, str.as_ptr().addr(), str.len()).into()
 }

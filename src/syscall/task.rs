@@ -1,4 +1,4 @@
-use crate::syscall::{SyscallResult, Vector, syscall};
+use crate::syscall::{SyscallResult, Vector, syscall_0};
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -23,7 +23,7 @@ impl From<SyscallResult> for Result<(), Error> {
 ///
 /// - [`Error::NoTask`] if there's no active task on the current hardware thread.
 pub fn defer() -> Result<(), Error> {
-    syscall(Vector::TaskDefer, 0, 0, 0, 0).into()
+    syscall_0(Vector::TaskDefer).into()
 }
 
 /// Kills the currently active task.
@@ -32,5 +32,5 @@ pub fn defer() -> Result<(), Error> {
 ///
 /// - [`Error::NoTask`] if there's no active task on the current hardware thread.
 pub fn kill() -> Result<(), Error> {
-    syscall(Vector::TaskKill, 0, 0, 0, 0).into()
+    syscall_0(Vector::TaskKill).into()
 }

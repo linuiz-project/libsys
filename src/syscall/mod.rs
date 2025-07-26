@@ -14,15 +14,17 @@ pub enum Vector {
     TaskDefer = 0x201,
 }
 
-#[allow(dead_code)]
-struct SyscallResult {
-    code: isize,
-    value: usize,
+fn into_result<TError: TryFrom<usize>>(code: usize, value: usize) -> Result<usize, TError> {
+    match code {
+        0 => Ok(value),
+        code if let Ok(t_error) = TError::try_from(code) => Err(t_error),
+        code => unreachable!("syscall returned invalid result code: {code}"),
+    }
 }
 
 #[allow(dead_code)]
-fn syscall_0(vector: Vector) -> SyscallResult {
-    let code: isize;
+fn syscall_0<TError: TryFrom<usize>>(vector: Vector) -> Result<usize, TError> {
+    let code: usize;
     let value: usize;
 
     unsafe {
@@ -40,12 +42,12 @@ fn syscall_0(vector: Vector) -> SyscallResult {
         }
     }
 
-    SyscallResult { code, value }
+    into_result(code, value)
 }
 
 #[allow(dead_code)]
-fn syscall_1(vector: Vector, arg1: usize) -> SyscallResult {
-    let code: isize;
+fn syscall_1<TError: TryFrom<usize>>(vector: Vector, arg1: usize) -> Result<usize, TError> {
+    let code: usize;
     let value: usize;
 
     unsafe {
@@ -63,12 +65,16 @@ fn syscall_1(vector: Vector, arg1: usize) -> SyscallResult {
         }
     }
 
-    SyscallResult { code, value }
+    into_result(code, value)
 }
 
 #[allow(dead_code)]
-fn syscall_2(vector: Vector, arg1: usize, arg2: usize) -> SyscallResult {
-    let code: isize;
+fn syscall_2<TError: TryFrom<usize>>(
+    vector: Vector,
+    arg1: usize,
+    arg2: usize,
+) -> Result<usize, TError> {
+    let code: usize;
     let value: usize;
 
     unsafe {
@@ -87,12 +93,17 @@ fn syscall_2(vector: Vector, arg1: usize, arg2: usize) -> SyscallResult {
         }
     }
 
-    SyscallResult { code, value }
+    into_result(code, value)
 }
 
 #[allow(dead_code)]
-fn syscall_3(vector: Vector, arg1: usize, arg2: usize, arg3: usize) -> SyscallResult {
-    let code: isize;
+fn syscall_3<TError: TryFrom<usize>>(
+    vector: Vector,
+    arg1: usize,
+    arg2: usize,
+    arg3: usize,
+) -> Result<usize, TError> {
+    let code: usize;
     let value: usize;
 
     unsafe {
@@ -112,12 +123,18 @@ fn syscall_3(vector: Vector, arg1: usize, arg2: usize, arg3: usize) -> SyscallRe
         }
     }
 
-    SyscallResult { code, value }
+    into_result(code, value)
 }
 
 #[allow(dead_code)]
-fn syscall_4(vector: Vector, arg1: usize, arg2: usize, arg3: usize, arg4: usize) -> SyscallResult {
-    let code: isize;
+fn syscall_4<TError: TryFrom<usize>>(
+    vector: Vector,
+    arg1: usize,
+    arg2: usize,
+    arg3: usize,
+    arg4: usize,
+) -> Result<usize, TError> {
+    let code: usize;
     let value: usize;
 
     unsafe {
@@ -138,5 +155,5 @@ fn syscall_4(vector: Vector, arg1: usize, arg2: usize, arg3: usize, arg4: usize)
         }
     }
 
-    SyscallResult { code, value }
+    into_result(code, value)
 }

@@ -1,10 +1,21 @@
+use core::str::Utf8Error;
+
 use crate::syscall::{Vector, syscall_2};
 
 #[repr(usize)]
 #[derive(Debug, Error, IntoPrimitive, TryFromPrimitive)]
 pub enum Error {
-    #[error("provided log string was not mapped into memory")]
+    #[error("log string was not mapped into memory")]
     NotMapped = 1,
+
+    #[error("log string was invalid UTF-8")]
+    InvalidUtf8 = 2,
+}
+
+impl From<Utf8Error> for Error {
+    fn from(_: Utf8Error) -> Self {
+        Self::InvalidUtf8
+    }
 }
 
 /// Logs a trace-level message to the kernel journal.

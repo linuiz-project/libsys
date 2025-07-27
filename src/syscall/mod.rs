@@ -4,16 +4,17 @@ pub mod task;
 #[repr(usize)]
 #[derive(Debug, IntoPrimitive, TryFromPrimitive, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Vector {
-    KlogTrace = 0x100,
-    KlogDebug = 0x101,
-    KlogInfo = 0x102,
-    KlogWarn = 0x103,
-    KlogError = 0x104,
+    KlogTrace = 0x100000,
+    KlogDebug = 0x100001,
+    KlogInfo = 0x100002,
+    KlogWarn = 0x100003,
+    KlogError = 0x100004,
 
-    TaskKill = 0x200,
-    TaskDefer = 0x201,
+    TaskKill = 0x200000,
+    TaskDefer = 0x200001,
 }
 
+/// Converts a `code` and `value` from a kernel system call into a `Result<usize, TError>`.
 fn into_result<TError: TryFrom<usize>>(code: usize, value: usize) -> Result<usize, TError> {
     match code {
         0 => Ok(value),
@@ -22,6 +23,7 @@ fn into_result<TError: TryFrom<usize>>(code: usize, value: usize) -> Result<usiz
     }
 }
 
+/// Syscall with 0 arguments.
 #[allow(dead_code)]
 fn syscall_0<TError: TryFrom<usize>>(vector: Vector) -> Result<usize, TError> {
     let code: usize;
@@ -45,6 +47,7 @@ fn syscall_0<TError: TryFrom<usize>>(vector: Vector) -> Result<usize, TError> {
     into_result(code, value)
 }
 
+/// Syscall with 1 arguments.
 #[allow(dead_code)]
 fn syscall_1<TError: TryFrom<usize>>(vector: Vector, arg1: usize) -> Result<usize, TError> {
     let code: usize;
@@ -68,6 +71,7 @@ fn syscall_1<TError: TryFrom<usize>>(vector: Vector, arg1: usize) -> Result<usiz
     into_result(code, value)
 }
 
+/// Syscall with 2 arguments.
 #[allow(dead_code)]
 fn syscall_2<TError: TryFrom<usize>>(
     vector: Vector,
@@ -96,6 +100,7 @@ fn syscall_2<TError: TryFrom<usize>>(
     into_result(code, value)
 }
 
+/// Syscall with 3 arguments.
 #[allow(dead_code)]
 fn syscall_3<TError: TryFrom<usize>>(
     vector: Vector,
@@ -126,6 +131,7 @@ fn syscall_3<TError: TryFrom<usize>>(
     into_result(code, value)
 }
 
+/// Syscall with 4 arguments.
 #[allow(dead_code)]
 fn syscall_4<TError: TryFrom<usize>>(
     vector: Vector,

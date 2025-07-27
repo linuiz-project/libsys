@@ -1,6 +1,8 @@
 use crate::{
     address::{Address, AddressKind, NonCanonicalError, Virtual},
-    constants::{is_virtual_address_canonical, page_mask, page_shift, truncate_virtual_address},
+    constants::{
+        is_virtual_address_canonical, page_mask, page_shift, page_size, truncate_virtual_address,
+    },
 };
 
 pub struct Page;
@@ -49,6 +51,8 @@ impl Address<Page> {
         }
     }
 
+    /// Creates a new [`Address<Page>`] with the provided address, truncating
+    /// any non-canonical bits.
     #[must_use]
     pub fn new_truncate(address: usize) -> Self {
         Self(truncate_virtual_address(address) & !page_mask())
@@ -63,13 +67,14 @@ impl Address<Page> {
         Self(address)
     }
 
+    /// Gets the inner value.
     #[must_use]
     pub fn get(&self) -> Address<Virtual> {
-        // Safety: `Address<Page>` is a superset of `Address<Virtual>`s validition ruleset.
+        // Safety: `Address<Page>` is a superset of `Address<Virtual>`s canonicality.
         unsafe { Address::<Virtual>::new_unsafe(self.0) }
     }
 
-    /// Creates a new [`Address<Virtual>`] with the provided frame index.
+    /// Creates a new [`Address<Page>`] with the provided frame index.
     ///
     /// # Errors
     ///
@@ -84,6 +89,7 @@ impl Address<Page> {
         }
     }
 
+    /// Gets the index of the page this address points to.
     #[must_use]
     pub fn index(&self) -> usize {
         self.0 >> page_shift().get()
@@ -110,9 +116,15 @@ impl core::iter::Step for Address<Page> {
     }
 }
 
-impl<T> From<*mut T> for Address<Page> {
-    fn from(value: *mut T) -> Self {
-        Self(value.addr())
+impl<T> TryFrom<*mut T> for Address<Page> {
+    type Error = NonCanonicalError;
+
+    fn try_from(value: *mut T) -> Result<Self, Self::Error> {
+        if value.is_aligned_to(page_size()) {
+            Ok(Self(value.addr()))
+        } else {
+            Err(NonCanonicalError)
+        }
     }
 }
 

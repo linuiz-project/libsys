@@ -49,6 +49,8 @@ impl Address<Frame> {
         }
     }
 
+    /// Creates a new [`Address<Frame>`] with the provided address, truncating
+    /// any non-canonical bits.
     #[must_use]
     pub fn new_truncate(address: usize) -> Self {
         Self(truncate_physical_address(address) & !page_mask())
@@ -63,13 +65,14 @@ impl Address<Frame> {
         Self(address)
     }
 
+    /// Gets the inner value.
     #[must_use]
     pub fn get(&self) -> Address<Physical> {
-        // Safety: `Address<Frame>` is a superset of `Address<Physical>`s validition ruleset.
+        // Safety: `Address<Frame>` is a superset of `Address<Physical>`s canonicality.
         unsafe { Address::<Physical>::new_unsafe(self.0) }
     }
 
-    /// Creates a new [`Address<Virtual>`] with the provided frame index.
+    /// Creates a new [`Address<Frame>`] with the provided frame index.
     ///
     /// # Errors
     ///
@@ -84,6 +87,7 @@ impl Address<Frame> {
         }
     }
 
+    /// Gets the index of the frame this address points to.
     #[must_use]
     pub fn index(&self) -> usize {
         self.0 >> page_shift().get()

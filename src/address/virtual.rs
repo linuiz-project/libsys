@@ -50,6 +50,8 @@ impl Address<Virtual> {
         }
     }
 
+    /// Creates a new [`Address<Virtual>`] with the provided address, truncating
+    /// any non-canonical bits.
     #[must_use]
     pub fn new_truncate(address: usize) -> Self {
         Self(truncate_virtual_address(address))
@@ -63,6 +65,7 @@ impl Address<Virtual> {
         Self(address)
     }
 
+    /// Gets the inner value.
     #[must_use]
     pub fn get(&self) -> usize {
         self.0

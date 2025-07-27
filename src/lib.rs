@@ -1,5 +1,5 @@
 #![no_std]
-#![feature(cfg_select, if_let_guard, step_trait)]
+#![feature(cfg_select, if_let_guard, pointer_is_aligned_to, step_trait)]
 #![warn(clippy::pedantic, clippy::todo)]
 
 // In the future, there may be a platform where the pointer width does not

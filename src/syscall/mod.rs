@@ -4,14 +4,14 @@ pub mod task;
 #[repr(usize)]
 #[derive(Debug, IntoPrimitive, TryFromPrimitive, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Vector {
-    KlogTrace = 0x100000,
-    KlogDebug = 0x100001,
-    KlogInfo = 0x100002,
-    KlogWarn = 0x100003,
-    KlogError = 0x100004,
+    KlogTrace = 0x10_0000,
+    KlogDebug = 0x10_0001,
+    KlogInfo = 0x10_0002,
+    KlogWarn = 0x10_0003,
+    KlogError = 0x10_0004,
 
-    TaskKill = 0x200000,
-    TaskDefer = 0x200001,
+    TaskKill = 0x20_0000,
+    TaskDefer = 0x20_0001,
 }
 
 /// Converts a `code` and `value` from a kernel system call into a `Result<usize, TError>`.

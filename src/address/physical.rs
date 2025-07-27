@@ -1,22 +1,109 @@
+use crate::{
+    address::{Address, AddressKind, NonCanonicalError},
+    constants::{is_physical_address_canonical, truncate_physical_address},
+};
+
 #[derive(Debug)]
 pub struct Physical;
 
-impl super::Addressable for Physical {
-    type Init = usize;
+impl AddressKind for Physical {
     type Repr = usize;
-    type Get = usize;
+}
 
-    const DEBUG_NAME: &'static str = "Address<Physical>";
+impl Copy for Address<Physical> {}
+impl Clone for Address<Physical> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
 
-    fn new(init: Self::Init) -> Option<Self::Repr> {
-        crate::constants::is_physical_address_canonical(init).then_some(init)
+impl Eq for Address<Physical> {}
+impl PartialEq for Address<Physical> {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+impl Ord for Address<Physical> {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        self.0.cmp(&other.0)
+    }
+}
+
+impl PartialOrd for Address<Physical> {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Address<Physical> {
+    /// Creates a new [`Address<Physical>`] with the provided address.
+    ///
+    /// # Errors
+    ///
+    /// - [`NonCanonicalError`] if `address` contains any non-canonical bits.
+    pub fn new(address: usize) -> Result<Self, NonCanonicalError> {
+        if is_physical_address_canonical(address) {
+            Ok(Self(address))
+        } else {
+            Err(NonCanonicalError)
+        }
     }
 
-    fn new_truncate(init: Self::Init) -> Self::Repr {
-        init & crate::constants::physical_address_mask()
+    /// Creates a new [`Address<Physical>`] with the provided address, truncating
+    /// any non-canonical bits.
+    #[must_use]
+    pub fn new_truncate(address: usize) -> Self {
+        Self(truncate_physical_address(address))
     }
 
-    fn get(repr: Self::Repr) -> Self::Get {
-        repr
+    /// # Safety
+    ///
+    /// - `address` must have only canonical physical address bits set.
+    #[must_use]
+    pub unsafe fn new_unsafe(address: usize) -> Self {
+        Self(address)
+    }
+
+    /// Gets the inner value.
+    #[must_use]
+    pub fn get(&self) -> usize {
+        self.0
+    }
+}
+
+impl core::fmt::Debug for Address<Physical> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_tuple("Address<Physical>").field(&self.0).finish()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::address::{Address, NonCanonicalError, Physical};
+
+    #[test]
+    fn get() {
+        assert_eq!((unsafe { Address::<Physical>::new_unsafe(0xF) }).get(), 0xF);
+    }
+
+    #[test]
+    fn new() {
+        assert_eq!(
+            Address::<Physical>::new(0xFFF0_0000_0000_000F),
+            Err(NonCanonicalError)
+        );
+        assert_eq!(
+            Address::<Physical>::new(0xF).map(|address| address.get()),
+            Ok(0xF)
+        );
+    }
+
+    #[test]
+    fn new_truncate() {
+        assert_eq!(
+            Address::<Physical>::new_truncate(0xFFF0_0000_0000_000F).get(),
+            0xF
+        );
     }
 }

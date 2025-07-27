@@ -1,35 +1,115 @@
-use crate::{checked_virt_canonical, virt_noncanonical_shift};
+use crate::{
+    address::{Address, AddressKind, NonCanonicalError},
+    constants::{is_virtual_address_canonical, truncate_virtual_address},
+};
 
 #[derive(Debug)]
 pub struct Virtual;
 
-impl super::Addressable for Virtual {
-    type Init = usize;
+impl AddressKind for Virtual {
     type Repr = usize;
-    type Get = usize;
+}
 
-    const DEBUG_NAME: &'static str = "Address<Virtual>";
-
-    fn new(init: Self::Init) -> Option<Self::Repr> {
-        checked_virt_canonical(init).then_some(init)
-    }
-
-    fn new_truncate(init: Self::Init) -> Self::Repr {
-        let sign_extension_shift = Self::Init::BITS - virt_noncanonical_shift().get();
-        (((init << sign_extension_shift) as isize) >> sign_extension_shift) as Self::Repr
-    }
-
-    fn get(repr: Self::Repr) -> Self::Get {
-        repr
+impl Copy for Address<Virtual> {}
+impl Clone for Address<Virtual> {
+    fn clone(&self) -> Self {
+        *self
     }
 }
 
-impl super::PtrAddressable for Virtual {
-    fn from_ptr<T>(ptr: *mut T) -> Self::Repr {
-        ptr.addr()
+impl Eq for Address<Virtual> {}
+impl PartialEq for Address<Virtual> {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+impl Ord for Address<Virtual> {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        self.0.cmp(&other.0)
+    }
+}
+
+impl PartialOrd for Address<Virtual> {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Address<Virtual> {
+    /// Creates a new [`Address<Virtual>`] with the provided address.
+    ///
+    /// # Errors
+    ///
+    /// - [`NonCanonicalError`] if `address` contains any non-canonical bits.
+    pub fn new(address: usize) -> Result<Self, NonCanonicalError> {
+        if is_virtual_address_canonical(address) {
+            Ok(Self(address))
+        } else {
+            Err(NonCanonicalError)
+        }
     }
 
-    fn as_ptr(repr: Self::Repr) -> *mut u8 {
-        repr as *mut u8
+    /// Creates a new [`Address<Virtual>`] with the provided address, truncating
+    /// any non-canonical bits.
+    #[must_use]
+    pub fn new_truncate(address: usize) -> Self {
+        Self(truncate_virtual_address(address))
+    }
+
+    /// # Safety
+    ///
+    /// - `address` must have only canonical virtual address bits set.
+    #[must_use]
+    pub unsafe fn new_unsafe(address: usize) -> Self {
+        Self(address)
+    }
+
+    /// Gets the inner value.
+    #[must_use]
+    pub fn get(&self) -> usize {
+        self.0
+    }
+}
+
+impl<T> From<*mut T> for Address<Virtual> {
+    fn from(ptr: *mut T) -> Self {
+        Self(ptr.addr())
+    }
+}
+
+impl core::fmt::Debug for Address<Virtual> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_tuple("Address<Virtual>").field(&self.0).finish()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::address::{Address, NonCanonicalError, Virtual};
+
+    #[test]
+    fn get() {
+        assert_eq!((unsafe { Address::<Virtual>::new_unsafe(0xF) }).get(), 0xF);
+    }
+
+    #[test]
+    fn new() {
+        assert_eq!(
+            Address::<Virtual>::new(0xFFF0_0000_0000_000F),
+            Err(NonCanonicalError)
+        );
+        assert_eq!(
+            Address::<Virtual>::new(0xF).map(|address| address.get()),
+            Ok(0xF)
+        );
+    }
+
+    #[test]
+    fn new_truncate() {
+        assert_eq!(
+            Address::<Virtual>::new_truncate(0xFFF0_0000_0000_000F).get(),
+            0xF
+        );
     }
 }

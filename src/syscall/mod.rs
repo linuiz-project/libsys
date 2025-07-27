@@ -1,96 +1,165 @@
 pub mod klog;
 pub mod task;
 
-use core::ffi::c_void;
-use num_enum::TryFromPrimitive;
-
 #[repr(usize)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, TryFromPrimitive, Hash)]
+#[derive(Debug, IntoPrimitive, TryFromPrimitive, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Vector {
-    KlogInfo = 0x100,
-    KlogError = 0x101,
-    KlogDebug = 0x102,
-    KlogTrace = 0x103,
+    KlogTrace = 0x10_0000,
+    KlogDebug = 0x10_0001,
+    KlogInfo = 0x10_0002,
+    KlogWarn = 0x10_0003,
+    KlogError = 0x10_0004,
 
-    TaskExit = 0x200,
-    TaskYield = 0x201,
+    TaskKill = 0x20_0000,
+    TaskDefer = 0x20_0001,
 }
 
-pub type Result = core::result::Result<Success, Error>;
-
-const_assert!({
-    use core::mem::size_of;
-    size_of::<Result>() <= size_of::<(u64, u64)>()
-});
-
-pub trait ResultConverter {
-    type Registers;
-
-    fn from_registers(regs: Self::Registers) -> Self;
-    fn into_registers(self) -> Self::Registers;
-}
-
-impl ResultConverter for Result {
-    type Registers = (usize, usize);
-
-    fn from_registers((discriminant, value): Self::Registers) -> Self {
-        let discriminant = u32::try_from(discriminant).unwrap();
-        match Error::try_from_primitive(discriminant).map_err(|err| err.number) {
-            Ok(err) => Err(err),
-
-            Err(0x0) => Ok(Success::Ok),
-            Err(0x1) => Ok(Success::Ptr(value as *mut c_void)),
-            Err(0x2) => Ok(Success::NonNullPtr(
-                core::ptr::NonNull::new(value as *mut c_void).unwrap(),
-            )),
-
-            Err(_) => unimplemented!(),
-        }
+/// Converts a `code` and `value` from a kernel system call into a `Result<usize, TError>`.
+fn into_result<TError: TryFrom<usize>>(code: usize, value: usize) -> Result<usize, TError> {
+    match code {
+        0 => Ok(value),
+        code if let Ok(t_error) = TError::try_from(code) => Err(t_error),
+        code => unreachable!("syscall returned invalid result code: {code}"),
     }
+}
 
-    fn into_registers(self) -> Self::Registers {
-        match self {
-            Ok(success @ Success::Ok) => (success.discriminant() as usize, usize::default()),
-            Ok(success @ Success::Ptr(ptr)) => (success.discriminant() as usize, ptr.addr()),
-            Ok(success @ Success::NonNullPtr(ptr)) => {
-                (success.discriminant() as usize, ptr.addr().get())
+/// Syscall with 0 arguments.
+#[allow(dead_code)]
+fn syscall_0<TError: TryFrom<usize>>(vector: Vector) -> Result<usize, TError> {
+    let code: usize;
+    let value: usize;
+
+    unsafe {
+        cfg_select! {
+            target_arch = "x86_64" => {
+                core::arch::asm!(
+                    "int 0x80",
+                    inout("rsi") usize::from(vector) => value,
+                    out("rdi") code,
+                    options(preserves_flags)
+                );
             }
 
-            Err(err) => (err as usize, Default::default()),
+            _ => { todo!() }
         }
     }
+
+    into_result(code, value)
 }
 
-#[repr(u32)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Success {
-    Ok = 0x0,
-    Ptr(*mut c_void) = 0x1,
-    NonNullPtr(core::ptr::NonNull<c_void>) = 0x2,
-}
+/// Syscall with 1 arguments.
+#[allow(dead_code)]
+fn syscall_1<TError: TryFrom<usize>>(vector: Vector, arg1: usize) -> Result<usize, TError> {
+    let code: usize;
+    let value: usize;
 
-impl Success {
-    #[inline]
-    const fn discriminant(&self) -> u32 {
-        // Safety: discrimnent is guaranteed to be the first bytes
-        unsafe { *(self as *const Self as *const u32) }
+    unsafe {
+        cfg_select! {
+            target_arch = "x86_64" => {
+                core::arch::asm!(
+                    "int 0x80",
+                    inout("rsi") usize::from(vector) => value,
+                    inout("rdi") arg1 => code,
+                    options(preserves_flags)
+                );
+            }
+
+            _ => { todo!() }
+        }
     }
+
+    into_result(code, value)
 }
 
-#[repr(u32)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, TryFromPrimitive)]
-pub enum Error {
-    InvalidVector = 0x10000,
-    InvalidPtr = 0x20000,
-    InvalidUtf8 = 0x30000,
+/// Syscall with 2 arguments.
+#[allow(dead_code)]
+fn syscall_2<TError: TryFrom<usize>>(
+    vector: Vector,
+    arg1: usize,
+    arg2: usize,
+) -> Result<usize, TError> {
+    let code: usize;
+    let value: usize;
 
-    UnmappedMemory = 0x40000,
+    unsafe {
+        cfg_select! {
+            target_arch = "x86_64" => {
+                core::arch::asm!(
+                    "int 0x80",
+                    inout("rsi") usize::from(vector) => value,
+                    inout("rdi") arg1 => code,
+                    in("rax") arg2,
+                    options(preserves_flags)
+                );
+            }
 
-    NoActiveTask = 0x50000,
-}
-
-impl From<core::str::Utf8Error> for Error {
-    fn from(_: core::str::Utf8Error) -> Self {
-        Self::InvalidUtf8
+            _ => { todo!() }
+        }
     }
+
+    into_result(code, value)
+}
+
+/// Syscall with 3 arguments.
+#[allow(dead_code)]
+fn syscall_3<TError: TryFrom<usize>>(
+    vector: Vector,
+    arg1: usize,
+    arg2: usize,
+    arg3: usize,
+) -> Result<usize, TError> {
+    let code: usize;
+    let value: usize;
+
+    unsafe {
+        cfg_select! {
+            target_arch = "x86_64" => {
+                core::arch::asm!(
+                    "int 0x80",
+                    inout("rsi") usize::from(vector) => value,
+                    inout("rdi") arg1 => code,
+                    in("rax") arg2,
+                    in("rcx") arg3,
+                    options(preserves_flags)
+                );
+            }
+
+            _ => { todo!() }
+        }
+    }
+
+    into_result(code, value)
+}
+
+/// Syscall with 4 arguments.
+#[allow(dead_code)]
+fn syscall_4<TError: TryFrom<usize>>(
+    vector: Vector,
+    arg1: usize,
+    arg2: usize,
+    arg3: usize,
+    arg4: usize,
+) -> Result<usize, TError> {
+    let code: usize;
+    let value: usize;
+
+    unsafe {
+        cfg_select! {
+            target_arch = "x86_64" => {
+                core::arch::asm!(
+                    "int 0x80",
+                    inout("rsi") usize::from(vector) => value,
+                    inout("rdi") arg1 => code,
+                    in("rax") arg2,
+                    in("rcx") arg3,
+                    in("rdx") arg4,
+                    options(preserves_flags)
+                );
+            }
+
+            _ => { todo!() }
+        }
+    }
+
+    into_result(code, value)
 }

@@ -1,7 +1,7 @@
 use crate::{
     address::{Address, AddressKind, NonCanonicalError, Virtual},
     constants::{
-        is_virtual_address_canonical, page_mask, page_bits, page_size, truncate_virtual_address,
+        is_virtual_address_canonical, page_bits, page_mask, page_size, truncate_virtual_address,
     },
 };
 

@@ -1,6 +1,6 @@
 use crate::{
     address::{Address, AddressKind, NonCanonicalError, Physical},
-    constants::{is_physical_address_canonical, page_mask, page_shift, truncate_physical_address},
+    constants::{is_physical_address_canonical, page_bits, page_mask, truncate_physical_address},
 };
 
 pub struct Frame;
@@ -78,7 +78,7 @@ impl Address<Frame> {
     ///
     /// - [`NonCanonicalError`] if `index` would create a non-canonical address.
     pub fn from_index(index: usize) -> Result<Self, NonCanonicalError> {
-        let physical_address = index << page_shift().get();
+        let physical_address = index << page_bits().get();
 
         if is_physical_address_canonical(physical_address) {
             Ok(Self(physical_address))
@@ -90,7 +90,7 @@ impl Address<Frame> {
     /// Gets the index of the frame this address points to.
     #[must_use]
     pub fn index(&self) -> usize {
-        self.0 >> page_shift().get()
+        self.0 >> page_bits().get()
     }
 }
 

@@ -1,7 +1,7 @@
 use crate::{
     address::{Address, AddressKind, NonCanonicalError, Virtual},
     constants::{
-        is_virtual_address_canonical, page_mask, page_shift, page_size, truncate_virtual_address,
+        is_virtual_address_canonical, page_bits, page_mask, page_size, truncate_virtual_address,
     },
 };
 
@@ -80,7 +80,7 @@ impl Address<Page> {
     ///
     /// - [`NonCanonicalError`] if `index` would create a non-canonical address.
     pub fn from_index(index: usize) -> Result<Self, NonCanonicalError> {
-        let virtual_address = index << page_shift().get();
+        let virtual_address = index << page_bits().get();
 
         if is_virtual_address_canonical(virtual_address) {
             Ok(Self(virtual_address))
@@ -92,7 +92,7 @@ impl Address<Page> {
     /// Gets the index of the page this address points to.
     #[must_use]
     pub fn index(&self) -> usize {
-        self.0 >> page_shift().get()
+        self.0 >> page_bits().get()
     }
 }
 

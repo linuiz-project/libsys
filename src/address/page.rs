@@ -1,3 +1,5 @@
+use core::ptr::NonNull;
+
 use crate::{
     address::{Address, AddressKind, NonCanonicalError, Virtual},
     constants::{
@@ -122,6 +124,18 @@ impl<T> TryFrom<*mut T> for Address<Page> {
     fn try_from(value: *mut T) -> Result<Self, Self::Error> {
         if value.is_aligned_to(page_size()) {
             Ok(Self(value.addr()))
+        } else {
+            Err(NonCanonicalError)
+        }
+    }
+}
+
+impl<T> TryFrom<NonNull<T>> for Address<Page> {
+    type Error = NonCanonicalError;
+
+    fn try_from(value: NonNull<T>) -> Result<Self, Self::Error> {
+        if value.is_aligned_to(page_size()) {
+            Ok(Self(value.addr().get()))
         } else {
             Err(NonCanonicalError)
         }

@@ -1,3 +1,5 @@
+use core::ptr::NonNull;
+
 use crate::{
     address::{Address, AddressKind, NonCanonicalError},
     constants::{is_virtual_address_canonical, truncate_virtual_address},
@@ -75,6 +77,12 @@ impl Address<Virtual> {
 impl<T> From<*mut T> for Address<Virtual> {
     fn from(ptr: *mut T) -> Self {
         Self(ptr.addr())
+    }
+}
+
+impl<T> From<NonNull<T>> for Address<Virtual> {
+    fn from(ptr: NonNull<T>) -> Self {
+        Self(ptr.addr().get())
     }
 }
 

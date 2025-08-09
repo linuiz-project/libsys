@@ -63,7 +63,7 @@ impl Address<Virtual> {
     ///
     /// - `address` must have only canonical virtual address bits set.
     #[must_use]
-    pub unsafe fn new_unsafe(address: usize) -> Self {
+    pub unsafe fn new_unchecked(address: usize) -> Self {
         Self(address)
     }
 
@@ -98,7 +98,10 @@ mod tests {
 
     #[test]
     fn get() {
-        assert_eq!((unsafe { Address::<Virtual>::new_unsafe(0xF) }).get(), 0xF);
+        assert_eq!(
+            (unsafe { Address::<Virtual>::new_unchecked(0xF) }).get(),
+            0xF
+        );
     }
 
     #[test]

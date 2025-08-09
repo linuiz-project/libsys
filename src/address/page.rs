@@ -65,7 +65,7 @@ impl Address<Page> {
     /// - `address` must be page-aligned.
     /// - `address` must have only canonical virtual address bits set.
     #[must_use]
-    pub unsafe fn new_unsafe(address: usize) -> Self {
+    pub unsafe fn new_unchecked(address: usize) -> Self {
         Self(address)
     }
 
@@ -73,7 +73,7 @@ impl Address<Page> {
     #[must_use]
     pub fn get(&self) -> Address<Virtual> {
         // Safety: `Address<Page>` is a superset of `Address<Virtual>`s canonicality.
-        unsafe { Address::<Virtual>::new_unsafe(self.0) }
+        unsafe { Address::<Virtual>::new_unchecked(self.0) }
     }
 
     /// Creates a new [`Address<Page>`] with the provided frame index.
@@ -155,8 +155,8 @@ mod tests {
     #[test]
     fn get() {
         assert_eq!(
-            (unsafe { Address::<Page>::new_unsafe(0xF000) }).get(),
-            unsafe { Address::<Virtual>::new_unsafe(0xF000) }
+            (unsafe { Address::<Page>::new_unchecked(0xF000) }).get(),
+            unsafe { Address::<Virtual>::new_unchecked(0xF000) }
         );
     }
 
@@ -192,7 +192,7 @@ mod tests {
         );
         assert_eq!(
             Address::<Page>::from_index(0xF).map(|address| address.get()),
-            Ok(unsafe { Address::<Virtual>::new_unsafe(0xF000) })
+            Ok(unsafe { Address::<Virtual>::new_unchecked(0xF000) })
         );
     }
 }

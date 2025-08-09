@@ -61,7 +61,7 @@ impl Address<Frame> {
     /// - `address` must be page-aligned.
     /// - `address` must have only canonical physical address bits set.
     #[must_use]
-    pub unsafe fn new_unsafe(address: usize) -> Self {
+    pub unsafe fn new_unchecked(address: usize) -> Self {
         Self(address)
     }
 
@@ -69,7 +69,7 @@ impl Address<Frame> {
     #[must_use]
     pub fn get(&self) -> Address<Physical> {
         // Safety: `Address<Frame>` is a superset of `Address<Physical>`s canonicality.
-        unsafe { Address::<Physical>::new_unsafe(self.0) }
+        unsafe { Address::<Physical>::new_unchecked(self.0) }
     }
 
     /// Creates a new [`Address<Frame>`] with the provided frame index.
@@ -127,8 +127,8 @@ mod tests {
     #[test]
     fn get() {
         assert_eq!(
-            (unsafe { Address::<Frame>::new_unsafe(0xF000) }).get(),
-            unsafe { Address::<Physical>::new_unsafe(0xF000) }
+            (unsafe { Address::<Frame>::new_unchecked(0xF000) }).get(),
+            unsafe { Address::<Physical>::new_unchecked(0xF000) }
         );
     }
 
@@ -164,7 +164,7 @@ mod tests {
         );
         assert_eq!(
             Address::<Frame>::from_index(0xF).map(|address| address.get()),
-            Ok(unsafe { Address::<Physical>::new_unsafe(0xF000) })
+            Ok(unsafe { Address::<Physical>::new_unchecked(0xF000) })
         );
     }
 }

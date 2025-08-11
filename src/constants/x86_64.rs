@@ -1,5 +1,35 @@
-use crate::constants::get_paging_depth;
 use core::num::NonZero;
+
+#[cfg(test)]
+#[must_use]
+pub fn get_paging_depth() -> NonZero<u32> {
+    // Safety: Value is non-zero.
+    unsafe { NonZero::new_unchecked(4) }
+}
+
+#[cfg(not(test))]
+#[must_use]
+pub fn get_paging_depth() -> NonZero<u32> {
+    const CR4_LA57_BIT: usize = 1 << 12;
+
+    let cr4: usize;
+
+    unsafe {
+        core::arch::asm!(
+            "mov {}, cr4",
+            out(reg) cr4,
+            options(nostack, nomem, preserves_flags)
+        );
+    }
+
+    if (cr4 & CR4_LA57_BIT) == 0 {
+        // Safety: Value is non-zero.
+        unsafe { NonZero::new_unchecked(4) }
+    } else {
+        // Safety: Value is non-zero.
+        unsafe { NonZero::new_unchecked(5) }
+    }
+}
 
 /// Bit shift required to offset page indexes.
 #[must_use]
@@ -105,17 +135,17 @@ pub const fn is_physical_address_canonical(physical_address: usize) -> bool {
 /// Bit-shift to reach non-canonical bits of a virtual address.
 #[must_use]
 pub fn virtual_address_bits() -> NonZero<u32> {
-    let table_indexes_shift = table_index_bits().checked_mul(get_paging_depth()).unwrap();
-    let total_shift = table_indexes_shift.checked_add(page_bits().get()).unwrap();
+    let table_indexes_shift = table_index_bits().get() * get_paging_depth().get();
+    let total_shift = table_indexes_shift + page_bits().get();
 
-    NonZero::<u32>::new(total_shift.get()).unwrap()
+    // Safety: Operations cannot overflow with the provided constants.
+    unsafe { NonZero::<u32>::new_unchecked(total_shift) }
 }
 
 /// Checks whether a provided address has only the canonical virtual bits.
 #[must_use]
 pub fn is_virtual_address_canonical(virtual_address: usize) -> bool {
-    let sign_extension_check_shift = virtual_address_bits().get().checked_sub(1).unwrap();
-
+    let sign_extension_check_shift = virtual_address_bits().get() - 1;
     matches!(virtual_address >> sign_extension_check_shift, 0 | 0x1FFFF)
 }
 

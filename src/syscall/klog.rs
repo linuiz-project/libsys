@@ -1,6 +1,7 @@
-use core::str::Utf8Error;
-
 use crate::syscall::{Vector, syscall_2};
+use core::str::Utf8Error;
+use num_enum::{IntoPrimitive, TryFromPrimitive};
+use thiserror::Error;
 
 #[repr(usize)]
 #[derive(Debug, Error, IntoPrimitive, TryFromPrimitive)]

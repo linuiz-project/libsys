@@ -1,4 +1,6 @@
 use crate::syscall::{Vector, syscall_0};
+use num_enum::{IntoPrimitive, TryFromPrimitive};
+use thiserror::Error;
 
 #[repr(usize)]
 #[derive(Debug, Error, IntoPrimitive, TryFromPrimitive)]

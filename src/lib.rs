@@ -8,7 +8,4 @@
 // introduce special types like `uptr` or `ureg` to handle the differing
 // sizes of the CPU-internal structures.
 
-pub mod address;
-pub mod constants;
-pub mod math;
 pub mod syscall;
